@@ -1,5 +1,5 @@
-import 'package:cinemapedia_app/config/constants/environment.dart';
-import 'package:cinemapedia_app/presentation/providers/movies/movies_providers.dart';
+import 'package:cinemapedia_app/presentation/providers/providers.dart';
+import 'package:cinemapedia_app/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,11 +9,9 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-      ),
-      body: const _HomeView(),
+    return const Scaffold(      
+      body: _HomeView(),
+      bottomNavigationBar: CustomBottomNavigation(),
     );
   }
 }
@@ -32,24 +30,75 @@ class _HomeViewState extends ConsumerState<_HomeView> {
     super.initState();
 
     ref.read( nowPlayingMoviesProvider.notifier ).loadNextPage();
+
+    ref.read( popularMoviesProvider.notifier ).loadNextPage();
+
+   ref.read( upcomingMoviesProvider.notifier ).loadNextPage();
+
+   ref.read( topRatedMoviesProvider.notifier ).loadNextPage();
+
   }
 
  @override
  Widget build(BuildContext context) {
   
+  final initialLoading = ref.watch(initialLoadingProvider);
+
+  if(initialLoading) return const FullScreenLoader();
+
   final nowPlayingMovies = ref.watch( nowPlayingMoviesProvider );
+  final slideMovies = ref.watch( moviesSlideshowProvider );
+  final popularMovies = ref.watch( popularMoviesProvider );
+  final topMovies = ref.watch( topRatedMoviesProvider );
+  final upComingMovies = ref.watch( upcomingMoviesProvider );
+  
+  return CustomScrollView(
+    slivers:[
+      const SliverAppBar(
+        floating: true,        
+        stretch: true,
+        title: CustomAppbar(),
+      ),
 
-  // if( nowPlayingMovies.isEmpty) return const CircularProgressIndicator();
-   
-  return ListView.builder(
-    itemCount: nowPlayingMovies.length,
-    itemBuilder: (context, index) {
-      final movie = nowPlayingMovies[index];
-
-      return ListTile(
-        title: Text( movie.title)
-      );
-    },
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return Column(
+              children: [
+                MoviesSlideshow(movies: slideMovies),
+                MoviesHorizontalListview(
+                  movies: nowPlayingMovies,
+                  title: "En Cines",
+                  subTitle: "Lunes 20",
+                  loadNextPage: () => ref.read(nowPlayingMoviesProvider.notifier).loadNextPage(),
+                ),
+            
+                MoviesHorizontalListview(
+                  movies: upComingMovies,
+                  title: "Próximamente",
+                  subTitle: "En este mes",
+                  loadNextPage: () => ref.read(upcomingMoviesProvider.notifier).loadNextPage(),
+                ),
+            
+                MoviesHorizontalListview(
+                  movies: popularMovies,
+                  title: "Populares",
+                  loadNextPage: () => ref.read(popularMoviesProvider.notifier).loadNextPage(),
+                ),
+            
+                MoviesHorizontalListview(
+                  movies: topMovies,
+                  title: "Mejor Calificadas",
+                  subTitle: "Desde siempre",
+                  loadNextPage: () => ref.read(topRatedMoviesProvider.notifier).loadNextPage(),
+                ),            
+              ],
+            );
+          },
+          childCount: 1,
+        )
+      ),
+    ] 
   );
  }
 }
